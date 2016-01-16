@@ -127,3 +127,7 @@ FCW mounts three virtual drives into the DOSBox environment:
    9010a compiler.
  - `D:`. The directory containing the source file to compile.
  - `E:`. A temporary directory containing 9LC and DOSBox output.
+
+## License
+
+FCW is in the public domain.
