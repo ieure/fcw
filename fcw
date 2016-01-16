@@ -1,0 +1,142 @@
+#! /usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# © 2016 Ian Eure
+# Author: Ian Eure <ian.eure@gmail.com>
+#
+
+"""Fluke Compiler Wrapper"""
+
+import sys
+import os
+import time
+import subprocess
+from tempfile import mkstemp, mkdtemp
+
+_CMD = '9LC.EXE'
+_LOG = 'log'
+
+def dosbox_cmd():
+    for dir in os.getenv('PATH').split(':'):
+        bin = dir + '/dosbox'
+        if os.path.exists(bin):
+            return bin
+
+
+def makeconf(build_dir, src_dir, log_dir, args):
+    """Create the DOSBox configuration."""
+    return """
+    [render]
+    frameskip = 100
+
+    [sdl]
+    fullscreen = false
+    autolock = false
+    waitonerror = false
+
+    [cpu]
+    cycle = max
+
+    [mixer]
+    nosound = true
+
+    [midi]
+    mpu4-1 = none
+    mididevice = none
+
+    [sblaster]
+    sbtype = none
+
+    [gus]
+    gus = false
+
+    [speaker]
+    pcspeaker = false
+
+    [joystick]
+    joysticktype = none
+
+    [serial]
+    serial1 = disabled
+    serial2 = disabled
+    serial3 = disabled
+    serial4 = disabled
+
+    [dos]
+    xms = false
+    ems = false
+    umb = false
+
+    [ipx]
+    ipx = false
+
+    [autoexec]
+    mount c %s
+    mount d %s
+    mount e %s
+    d:
+    c:\%s %s > e:\%s
+    exit
+    """ % (build_dir, src_dir, log_dir, _CMD, " ".join(args), _LOG)
+
+
+def compile(args):
+    dosbox = dosbox_cmd()
+    if not dosbox:
+        raise NameError("Couldn't find `dosbox' on $PATH")
+
+    build_dir = os.path.dirname(__file__) + '/build'
+    if not os.path.exists(args[-1]):
+        raise IOError("File `%s' does not exist." % args[-1])
+
+    srcfile = os.path.realpath(args[-1])
+    src_dir = os.path.dirname(srcfile)
+    log_dir = mkdtemp()
+    args[-1] = os.path.basename(args[-1])
+    cfg = log_dir + '/cfg'
+    log = log_dir + '/' + _LOG
+    out = log_dir + '/out'
+
+    # Write the DOSBox config
+    with open(cfg, 'w') as cfd:
+        cfd.write(makeconf(build_dir, src_dir, log_dir, args))
+
+    try:
+        with open(out, 'w') as ofd:
+            proc = subprocess.Popen([dosbox, "-noconsole", "-conf", cfg],
+                                    stdout=ofd, stderr=ofd,
+                                    env={"SDL_VIDEODRIVER": "dummy"})
+
+        proc.wait()
+
+        dump = log
+        if not os.path.exists(log):
+            dump = out
+
+        with open(dump, 'r') as fd:
+            sys.stdout.write(fd.read())
+
+
+    finally:
+        # Clean up
+        os.unlink(cfg)
+        os.unlink(log)
+        os.unlink(out)
+        os.rmdir(log_dir)
+
+
+def main(args):
+    if args:
+        try:
+            compile(args)
+            return 0
+        except Exception as e:
+            print(e)
+            return 2
+    else:
+        print("Usage: fcw [9LC args]")
+        return 1
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))
