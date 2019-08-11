@@ -105,7 +105,8 @@ Due to the way DOS works, the output of 9LC is buffered until it
 terminates; it doesn’t update line-by-line like it does when run
 directly. Because DOS is a single-tasking OS, the standard output is
 buffered until the process completes, since it cannot be consumed by
-another process at the same time. FCW does provide the 9LC output, but all at once, at the end of compilation.
+another process at the same time. FCW does provide the 9LC output, but
+all at once, at the end of compilation.
 
 Because 9LC predates FAT32’s long filename support, scripts in non-8.3
 files will fail to compile.
